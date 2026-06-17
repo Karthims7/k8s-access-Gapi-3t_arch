@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Task Planner</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f0c1b 0%, #15102a 50%, #06020f 100%);
+            --panel-bg: rgba(25, 18, 48, 0.4);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f0ff;
+            --text-secondary: #a59fc4;
+            --accent-primary: #7c4dff;
+            --accent-secondary: #00e5ff;
+            --accent-gradient: linear-gradient(90deg, #7c4dff 0%, #00e5ff 100%);
+            --shadow-primary: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Abstract glowing background blobs for visual depth */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: 0;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .blob-1 {
+            top: 15%;
+            left: 20%;
+            width: 300px;
+            height: 300px;
+            background: var(--accent-primary);
+            animation: float 12s ease-in-out infinite alternate;
+        }
+
+        .blob-2 {
+            bottom: 15%;
+            right: 20%;
+            width: 350px;
+            height: 350px;
+            background: var(--accent-secondary);
+            animation: float 15s ease-in-out infinite alternate-reverse;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(40px, 30px) scale(1.1); }
+        }
+
+        /* Container with glassmorphism */
+        .app-container {
+            width: 100%;
+            max-width: 580px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: var(--shadow-primary);
+            z-index: 1;
+            margin: 20px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 300;
+        }
+
+        /* Form */
+        form {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            font-family: inherit;
+            font-size: 1rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        button {
+            background: var(--accent-gradient);
+            color: #06020f;
+            border: none;
+            border-radius: 12px;
+            padding: 0 28px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(124, 77, 255, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 229, 255, 0.4);
+            filter: brightness(1.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* Task List */
+        .task-list-container {
+            position: relative;
+        }
+
+        .task-list-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-count {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+        }
+
+        ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        /* Custom scrollbar for task list */
+        ul::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ul::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ul::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        ul::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        li {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        li:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(3px);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .task-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .task-indicator {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-secondary);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-secondary);
+        }
+
+        .task-title {
+            font-size: 1rem;
+            font-weight: 400;
+        }
+
+        .task-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-secondary);
+            font-weight: 300;
+            font-style: italic;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 20px 0;
+            color: var(--accent-secondary);
+        }
+
+        /* Error Banner */
+        .error-banner {
+            background: rgba(255, 77, 77, 0.15);
+            border: 1px solid rgba(255, 77, 77, 0.3);
+            color: #ff8080;
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        li:hover .task-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 0;
+            box-shadow: none;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: none;
+        }
+
+        .action-btn.edit-btn:hover {
+            border-color: var(--accent-secondary);
+            color: var(--accent-secondary);
+        }
+
+        .action-btn.delete-btn:hover {
+            border-color: #ff4d4d;
+            color: #ff4d4d;
+        }
+
+        .action-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            color: var(--text-secondary);
+        }
+
+        .action-btn:hover svg {
+            color: inherit;
+        }
+
+        /* Inline Edit Styling */
+        .edit-mode-container {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            align-items: center;
+        }
+
+        .edit-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--accent-secondary);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            outline: none;
+            width: 100%;
+        }
+
+        .edit-save-btn {
+            background: var(--accent-gradient);
+            color: #06020f;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: none;
+        }
+
+        .edit-save-btn:hover {
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+        }
+
+        .edit-cancel-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: none;
+        }
+
+        .edit-cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="app-container">
+        <header>
+            <h1>Task Planner</h1>
+            <div class="subtitle">Gateway API Microservices Architecture</div>
+        </header>
+
+        <div id="errorBanner" class="error-banner"></div>
+
+        <form id="taskForm">
+            <input type="text" id="taskInput" placeholder="Add a new enterprise goal..." required autocomplete="off">
+            <button type="submit">Deploy</button>
+        </form>
+
+        <div class="task-list-container">
+            <div class="task-list-title">
+                <span>Active Goals</span>
+                <span class="task-count" id="taskCount">0</span>
+            </div>
+            
+            <div id="loading" class="loading-spinner" style="display: none;">Fetching cluster goals...</div>
+            
+            <ul id="taskList">
+                <!-- Tasks loaded dynamically -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const taskForm = document.getElementById('taskForm');
+        const taskInput = document.getElementById('taskInput');
+        const taskList = document.getElementById('taskList');
+        const taskCount = document.getElementById('taskCount');
+        const errorBanner = document.getElementById('errorBanner');
+        const loadingDiv = document.getElementById('loading');
+
+        // Dynamic base URL targeting the same host (relative path routing via Gateway API)
+        const API_URL = '/api/tasks';
+
+        function showError(message) {
+            errorBanner.textContent = message;
+            errorBanner.style.display = 'flex';
+            setTimeout(() => {
+                errorBanner.style.display = 'none';
+            }, 5000);
+        }
+
+        async function fetchTasks() {
+            loadingDiv.style.display = 'block';
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Failed to fetch tasks from cluster backend.');
+                const tasks = await response.json();
+                
+                taskList.innerHTML = '';
+                taskCount.textContent = tasks.length;
+                
+                if (tasks.length === 0) {
+                    taskList.innerHTML = '<div class="empty-state">No goals deployed in the cluster. Create one above!</div>';
+                    return;
+                }
+
+                tasks.forEach(task => {
+                    const li = document.createElement('li');
+                    li.id = `task-${task.id}`;
+                    
+                    const date = new Date(task.created_at);
+                    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    li.innerHTML = `
+                        <div class="task-content" style="flex: 1;" id="content-container-${task.id}">
+                            <div class="task-indicator"></div>
+                            <span class="task-title" id="title-text-${task.id}">${escapeHTML(task.title)}</span>
+                        </div>
+                        
+                        <div class="task-actions-wrapper" style="display: flex; align-items: center; gap: 15px;" id="actions-container-${task.id}">
+                            <span class="task-time">${timeString}</span>
+                            <div class="task-actions">
+                                <button class="action-btn edit-btn" title="Edit Goal" data-id="${task.id}">
+                                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                </button>
+                                <button class="action-btn delete-btn" title="Delete Goal" data-id="${task.id}">
+                                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Attach event listeners to buttons
+                    const deleteBtn = li.querySelector('.delete-btn');
+                    const editBtn = li.querySelector('.edit-btn');
+
+                    deleteBtn.addEventListener('click', () => deleteTask(task.id));
+                    editBtn.addEventListener('click', () => enterEditMode(task.id, task.title));
+
+                    taskList.appendChild(li);
+                });
+            } catch (err) {
+                console.error(err);
+                showError('Could not connect to API Gateway Backend. Is the service running?');
+                taskList.innerHTML = '<div class="empty-state" style="color: #ff8080;">Error loading tasks.</div>';
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        async function deleteTask(id) {
+            if (!confirm('Are you sure you want to delete this goal?')) return;
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE',
+                });
+                if (!response.ok) throw new Error('Failed to delete task.');
+                
+                fetchTasks();
+            } catch (err) {
+                console.error(err);
+                showError('Failed to delete goal from database.');
+            }
+        }
+
+        function enterEditMode(id, currentTitle) {
+            const contentContainer = document.getElementById(`content-container-${id}`);
+            const actionsContainer = document.getElementById(`actions-container-${id}`);
+            
+            const originalContentHtml = contentContainer.innerHTML;
+            const originalActionsHtml = actionsContainer.innerHTML;
+
+            contentContainer.innerHTML = `
+                <div class="task-indicator"></div>
+                <div class="edit-mode-container">
+                    <input type="text" class="edit-input" id="edit-input-${id}" value="${escapeHTML(currentTitle)}" required>
+                    <button class="edit-save-btn" id="edit-save-${id}">Save</button>
+                    <button class="edit-cancel-btn" id="edit-cancel-${id}">Cancel</button>
+                </div>
+            `;
+            actionsContainer.style.display = 'none';
+
+            // Save click handler
+            document.getElementById(`edit-save-${id}`).addEventListener('click', async () => {
+                const newTitle = document.getElementById(`edit-input-${id}`).value.trim();
+                if (!newTitle) return;
+
+                try {
+                    const response = await fetch(`${API_URL}/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ title: newTitle }),
+                    });
+                    if (!response.ok) throw new Error('Failed to update task.');
+
+                    fetchTasks();
+                } catch (err) {
+                    console.error(err);
+                    showError('Failed to update goal in database.');
+                }
+            });
+
+            // Cancel click handler
+            document.getElementById(`edit-cancel-${id}`).addEventListener('click', () => {
+                contentContainer.innerHTML = originalContentHtml;
+                actionsContainer.innerHTML = originalActionsHtml;
+                actionsContainer.style.display = 'flex';
+                
+                // Re-bind listeners for normal state
+                const li = document.getElementById(`task-${id}`);
+                li.querySelector('.delete-btn').addEventListener('click', () => deleteTask(id));
+                li.querySelector('.edit-btn').addEventListener('click', () => enterEditMode(id, currentTitle));
+            });
+        }
+
+        async function createTask(e) {
+            e.preventDefault();
+            const title = taskInput.value.trim();
+            if (!title) return;
+
+            taskInput.value = '';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ title }),
+                });
+
+                if (!response.ok) throw new Error('Failed to save task.');
+                
+                fetchTasks();
+            } catch (err) {
+                console.error(err);
+                showError('Failed to publish goal to database.');
+            }
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        taskForm.addEventListener('submit', createTask);
+        
+        fetchTasks();
+    </script>
+</body>
+</html>
